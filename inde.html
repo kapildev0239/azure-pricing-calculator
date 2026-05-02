@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Azure Pricing Calculator</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ffffff; --bg2: #f5f5f5; --bg3: #ebebeb;
+  --text: #111111; --text2: #555555; --text3: #888888;
+  --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+  --blue-bg: #e6f1fb; --blue-text: #185fa5; --blue-border: #85b7eb;
+  --green-bg: #eaf3de; --green-text: #3b6d11; --green-border: #97c459;
+  --amber-bg: #faeeda; --amber-text: #854f0b; --amber-border: #ef9f27;
+  --purple-bg: #eeedfe; --purple-text: #3c3489; --purple-border: #afa9ec;
+  --radius: 8px; --radius-lg: 12px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a1a; --bg2: #242424; --bg3: #2c2c2c;
+    --text: #f0f0f0; --text2: #aaaaaa; --text3: #777777;
+    --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+    --blue-bg: #0c2f52; --blue-text: #85b7eb; --blue-border: #185fa5;
+    --green-bg: #173404; --green-text: #c0dd97; --green-border: #3b6d11;
+    --amber-bg: #412402; --amber-text: #fac775; --amber-border: #854f0b;
+    --purple-bg: #26215c; --purple-text: #afa9ec; --purple-border: #534ab7;
+  }
+}
+body { font-family: var(--font); background: var(--bg3); color: var(--text); min-height: 100vh; padding: 1.5rem 1rem; }
+.wrap { max-width: 1200px; margin: 0 auto; }
+.page-hdr { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 12px; }
+.page-hdr h1 { font-size: 22px; font-weight: 600; }
+.page-hdr p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+.badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.chip { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 99px; border: 1px solid; }
+.chip-blue { background: var(--blue-bg); color: var(--blue-text); border-color: var(--blue-border); }
+.chip-green { background: var(--green-bg); color: var(--green-text); border-color: var(--green-border); }
+.chip-purple { background: var(--purple-bg); color: var(--purple-text); border-color: var(--purple-border); }
+.card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+.form-r1 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
+.form-r2 { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 10px; align-items: end; margin-top: 10px; }
+@media(max-width:800px){ .form-r1,.form-r2{ grid-template-columns:1fr 1fr; } }
+label { display: block; font-size: 11px; font-weight: 500; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+select, input[type=number] { width: 100%; height: 36px; padding: 0 10px; font-size: 13px; font-family: var(--font); background: var(--bg2); color: var(--text); border: 1px solid var(--border2); border-radius: var(--radius); outline: none; }
+select:focus, input:focus { border-color: var(--blue-text); box-shadow: 0 0 0 2px var(--blue-bg); }
+select:disabled { opacity: 0.45; }
+.btn-primary { height: 36px; padding: 0 18px; font-size: 13px; font-weight: 500; font-family: var(--font); background: var(--blue-bg); color: var(--blue-text); border: 1px solid var(--blue-border); border-radius: var(--radius); cursor: pointer; white-space: nowrap; }
+.btn-primary:hover { opacity: 0.82; }
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-sec { height: 36px; padding: 0 14px; font-size: 13px; font-family: var(--font); background: var(--bg2); color: var(--text2); border: 1px solid var(--border2); border-radius: var(--radius); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn-sec:hover { opacity: 0.82; }
+.btn-sec:disabled { opacity: 0.35; cursor: not-allowed; }
+.note-box { font-size: 12px; color: var(--text2); background: var(--bg2); border-radius: var(--radius); padding: 8px 12px; margin-top: 10px; border-left: 3px solid var(--blue-border); display: none; line-height: 1.6; }
+.status { font-size: 12px; color: var(--text2); min-height: 36px; display: flex; align-items: center; }
+.top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
+.top-bar-left { font-size: 14px; font-weight: 500; }
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 860px; }
+th { font-size: 10px; font-weight: 600; color: var(--text3); text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+td { font-size: 12px; padding: 10px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--bg2); }
+.empty-td { text-align: center; padding: 3rem; color: var(--text3); font-size: 13px; }
+.bdg { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 99px; background: var(--bg2); color: var(--text2); border: 1px solid var(--border); white-space: nowrap; }
+.bdg-res { background: var(--green-bg); color: var(--green-text); border-color: var(--green-border); }
+.bdg-live { background: var(--blue-bg); color: var(--blue-text); border-color: var(--blue-border); font-size: 10px; }
+.bdg-est { background: var(--amber-bg); color: var(--amber-text); border-color: var(--amber-border); font-size: 10px; }
+.bdg-fabric { background: var(--purple-bg); color: var(--purple-text); border-color: var(--purple-border); }
+.save-pct { font-size: 11px; font-weight: 500; color: var(--green-text); }
+.btn-rm { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 16px; padding: 2px 6px; border-radius: 4px; }
+.btn-rm:hover { color: #e24b4a; background: rgba(226,75,74,0.08); }
+.qty-in { width: 65px; height: 28px; padding: 0 6px; font-size: 12px; text-align: center; background: var(--bg2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--font); }
+.unit-lbl { font-size: 10px; color: var(--text3); display: block; margin-top: 2px; }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 1.25rem; }
+.sc { background: var(--bg2); border-radius: var(--radius); padding: 14px 16px; }
+.sc-lbl { font-size: 11px; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+.sc-val { font-size: 22px; font-weight: 600; }
+.sc-val.green { color: var(--green-text); }
+.sc-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+.res-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; font-size: 11px; color: var(--text2); }
+.res-legend span { display: flex; align-items: center; gap: 5px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot-live { background: #185fa5; } .dot-real { background: #3b6d11; } .dot-est { background: #ba7517; }
+footer { text-align: center; font-size: 12px; color: var(--text3); margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); line-height: 1.8; }
+footer a { color: var(--blue-text); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="page-hdr">
+  <div>
+    <h1>Azure Pricing Calculator</h1>
+    <p>Estimate monthly and annual costs — real reservation prices from Azure Retail Prices API</p>
+    <div class="badges">
+      <span class="chip chip-blue">Live Azure Retail Prices API</span>
+      <span class="chip chip-green">Real reservation rates</span>
+      <span class="chip chip-purple">Microsoft Fabric</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="form-r1">
+    <div><label>Category</label><select id="cat-sel"><option value="">All categories</option></select></div>
+    <div><label>Service</label><select id="svc-sel"><option value="">Select service…</option></select></div>
+    <div><label>SKU / Sub-service</label><select id="sku-sel"><option value="">Select service first</option></select></div>
+    <div><label>Region</label><select id="reg-sel"></select></div>
+    <div><label>&nbsp;</label><button class="btn-primary" id="btn-add" disabled>+ Add</button></div>
+  </div>
+  <div class="form-r2">
+    <div>
+      <label>Reservation / commitment term</label>
+      <select id="res-sel">
+        <option value="payg">Pay-as-you-go</option>
+        <option value="1yr">1-year reserved</option>
+        <option value="3yr">3-year reserved</option>
+        <option value="hybrid">Hybrid Benefit + 1yr</option>
+      </select>
+    </div>
+    <div><label>Quantity / units</label><input type="number" id="qty-in" value="1" min="0.01" step="0.01"></div>
+    <div><label>&nbsp;</label><div class="status" id="status-msg"></div></div>
+  </div>
+  <div class="note-box" id="note-box"></div>
+  <div class="res-legend">
+    <span><span class="dot dot-live"></span>Live PAYG from Azure API</span>
+    <span><span class="dot dot-real"></span>Real reservation price from Azure API</span>
+    <span><span class="dot dot-est"></span>Reference price (fallback when API unavailable)</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="top-bar">
+    <div class="top-bar-left" id="item-count">No services added</div>
+    <button class="btn-sec" id="btn-export" disabled>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v7M4 5l3 3 3-3M2 10v1.5A.5.5 0 002.5 12h9a.5.5 0 00.5-.5V10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Export CSV
+    </button>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:13%">Service</th>
+          <th style="width:17%">SKU / Sub-service</th>
+          <th style="width:9%">Region</th>
+          <th style="width:10%">Reservation</th>
+          <th style="width:11%">Quantity</th>
+          <th style="width:9%">PAYG/unit</th>
+          <th style="width:9%">Res/unit</th>
+          <th style="width:8%">PAYG/mo</th>
+          <th style="width:8%">Reserved/mo</th>
+          <th style="width:6%">Savings</th>
+          <th style="width:3%"></th>
+        </tr>
+      </thead>
+      <tbody id="tbl-body">
+        <tr><td colspan="11" class="empty-td">No services added yet. Use the form above to get started.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="summary">
+    <div class="sc"><div class="sc-lbl">Monthly — PAYG</div><div class="sc-val" id="s-payg">$0.00</div><div class="sc-sub">no commitment</div></div>
+    <div class="sc"><div class="sc-lbl">Monthly — reserved</div><div class="sc-val" id="s-res">$0.00</div><div class="sc-sub">with your selections</div></div>
+    <div class="sc"><div class="sc-lbl">Annual estimate</div><div class="sc-val" id="s-annual">$0.00</div><div class="sc-sub">reserved × 12</div></div>
+    <div class="sc"><div class="sc-lbl">Annual savings</div><div class="sc-val green" id="s-save">$0.00</div><div class="sc-sub">vs pay-as-you-go</div></div>
+  </div>
+</div>
+
+<footer>
+  Prices are indicative. Always verify on the official <a href="https://azure.microsoft.com/en-us/pricing/calculator/" target="_blank">Azure Pricing Calculator</a> before committing.<br>
+  Powered by <a href="https://prices.azure.com/api/retail/prices" target="_blank">Azure Retail Prices API</a>. Reservation rates fetched live where supported; flat discounts used as fallback.
+</footer>
+</div>
+
+<script>
+const REGIONS=[["eastus","East US"],["eastus2","East US 2"],["westus","West US"],["westus2","West US 2"],["centralus","Central US"],["northcentralus","North Central US"],["southcentralus","South Central US"],["westcentralus","West Central US"],["northeurope","North Europe"],["westeurope","West Europe"],["uksouth","UK South"],["ukwest","UK West"],["francecentral","France Central"],["germanywestcentral","Germany West Central"],["switzerlandnorth","Switzerland North"],["norwayeast","Norway East"],["swedencentral","Sweden Central"],["eastasia","East Asia"],["southeastasia","Southeast Asia"],["australiaeast","Australia East"],["australiasoutheast","Australia Southeast"],["brazilsouth","Brazil South"],["canadacentral","Canada Central"],["canadaeast","Canada East"],["japaneast","Japan East"],["japanwest","Japan West"],["koreacentral","Korea Central"],["koreasouth","Korea South"],["centralindia","Central India"],["southindia","South India"],["westindia","West India"],["uaenorth","UAE North"],["southafricanorth","South Africa North"],["qatarcentral","Qatar Central"]];
+const RES_LABEL={payg:"Pay-as-you-go","1yr":"1-yr Reserved","3yr":"3-yr Reserved",hybrid:"Hybrid + 1yr"};
+const FLAT_DISC={payg:0,"1yr":0.35,"3yr":0.55,hybrid:0.60};
+const SUPPORTS_RES=new Set(["Virtual Machines","Azure SQL Database","Azure SQL Managed Instance","Azure App Service","Azure Kubernetes Service","Azure Database for PostgreSQL","Azure Database for MySQL","Azure Cache for Redis","Azure Synapse Analytics","Azure Databricks","Azure Managed Disks"]);
+const API_MAP={"Virtual Machines":"Virtual Machines","Azure Spot VMs":"Virtual Machines","Azure SQL Database":"SQL Database","Azure SQL Managed Instance":"SQL Managed Instance","Azure Blob Storage":"Storage","Azure Managed Disks":"Storage","Azure Kubernetes Service":"Azure Kubernetes Service","Azure App Service":"App Service","Azure Cosmos DB":"Azure Cosmos DB","Azure Functions":"Azure Functions","Azure Cache for Redis":"Azure Cache for Redis","Azure Load Balancer":"Load Balancer","Azure OpenAI":"Azure OpenAI","Azure Application Gateway":"Application Gateway","Azure VPN Gateway":"VPN Gateway","Azure Firewall":"Azure Firewall","Azure Database for PostgreSQL":"Azure Database for PostgreSQL","Azure Database for MySQL":"Azure Database for MySQL","Azure Service Bus":"Service Bus","Azure Event Hubs":"Event Hubs","Azure API Management":"API Management","Azure Container Registry":"Container Registry","Azure Container Instances":"Container Instances","Azure Key Vault":"Key Vault","Azure Synapse Analytics":"Azure Synapse Analytics","Azure Monitor":"Azure Monitor","Azure Databricks":"Azure Databricks","Microsoft Fabric":"Microsoft Fabric","Azure Front Door":"Azure Front Door","Azure AI Search":"Azure Search","Microsoft Sentinel":"Azure Sentinel"};
+
+const CATALOG={
+"Compute":{
+"Virtual Machines":[
+{l:"B1ls — 1 vCPU, 0.5 GB",f:"B1ls",p:3.80,fam:"B-series (Burstable)"},{l:"B1s — 1 vCPU, 1 GB",f:"B1s",p:7.59,fam:"B-series (Burstable)"},{l:"B2s — 2 vCPU, 4 GB",f:"B2s",p:30.37,fam:"B-series (Burstable)"},{l:"B4ms — 4 vCPU, 16 GB",f:"B4ms",p:60.74,fam:"B-series (Burstable)"},{l:"B8ms — 8 vCPU, 32 GB",f:"B8ms",p:121.47,fam:"B-series (Burstable)"},{l:"B16ms — 16 vCPU, 64 GB",f:"B16ms",p:242.94,fam:"B-series (Burstable)"},
+{l:"D2s v3 — 2 vCPU, 8 GB",f:"D2s v3",p:96.36,fam:"Dsv3 (General Purpose)"},{l:"D4s v3 — 4 vCPU, 16 GB",f:"D4s v3",p:192.72,fam:"Dsv3 (General Purpose)"},{l:"D8s v3 — 8 vCPU, 32 GB",f:"D8s v3",p:385.44,fam:"Dsv3 (General Purpose)"},{l:"D16s v3 — 16 vCPU, 64 GB",f:"D16s v3",p:770.88,fam:"Dsv3 (General Purpose)"},{l:"D32s v3 — 32 vCPU, 128 GB",f:"D32s v3",p:1541.76,fam:"Dsv3 (General Purpose)"},
+{l:"D2s v5 — 2 vCPU, 8 GB",f:"D2s v5",p:96.36,fam:"Dsv5 (General Purpose)"},{l:"D4s v5 — 4 vCPU, 16 GB",f:"D4s v5",p:192.72,fam:"Dsv5 (General Purpose)"},{l:"D8s v5 — 8 vCPU, 32 GB",f:"D8s v5",p:385.44,fam:"Dsv5 (General Purpose)"},{l:"D16s v5 — 16 vCPU, 64 GB",f:"D16s v5",p:770.88,fam:"Dsv5 (General Purpose)"},{l:"D32s v5 — 32 vCPU, 128 GB",f:"D32s v5",p:1541.76,fam:"Dsv5 (General Purpose)"},{l:"D48s v5 — 48 vCPU, 192 GB",f:"D48s v5",p:2312.64,fam:"Dsv5 (General Purpose)"},{l:"D64s v5 — 64 vCPU, 256 GB",f:"D64s v5",p:3083.52,fam:"Dsv5 (General Purpose)"},
+{l:"D2as v5 — 2 vCPU, 8 GB (AMD)",f:"D2as v5",p:91.98,fam:"Dasv5 (General Purpose AMD)"},{l:"D4as v5 — 4 vCPU, 16 GB (AMD)",f:"D4as v5",p:183.96,fam:"Dasv5 (General Purpose AMD)"},{l:"D8as v5 — 8 vCPU, 32 GB (AMD)",f:"D8as v5",p:367.92,fam:"Dasv5 (General Purpose AMD)"},{l:"D16as v5 — 16 vCPU, 64 GB (AMD)",f:"D16as v5",p:735.84,fam:"Dasv5 (General Purpose AMD)"},{l:"D32as v5 — 32 vCPU, 128 GB (AMD)",f:"D32as v5",p:1471.68,fam:"Dasv5 (General Purpose AMD)"},
+{l:"E2s v3 — 2 vCPU, 16 GB",f:"E2s v3",p:126.28,fam:"Esv3 (Memory Optimized)"},{l:"E4s v3 — 4 vCPU, 32 GB",f:"E4s v3",p:252.56,fam:"Esv3 (Memory Optimized)"},{l:"E8s v3 — 8 vCPU, 64 GB",f:"E8s v3",p:504.04,fam:"Esv3 (Memory Optimized)"},{l:"E16s v3 — 16 vCPU, 128 GB",f:"E16s v3",p:1009.08,fam:"Esv3 (Memory Optimized)"},{l:"E32s v3 — 32 vCPU, 256 GB",f:"E32s v3",p:2017.15,fam:"Esv3 (Memory Optimized)"},
+{l:"E2s v5 — 2 vCPU, 16 GB",f:"E2s v5",p:126.28,fam:"Esv5 (Memory Optimized)"},{l:"E4s v5 — 4 vCPU, 32 GB",f:"E4s v5",p:252.56,fam:"Esv5 (Memory Optimized)"},{l:"E8s v5 — 8 vCPU, 64 GB",f:"E8s v5",p:504.04,fam:"Esv5 (Memory Optimized)"},{l:"E16s v5 — 16 vCPU, 128 GB",f:"E16s v5",p:1009.08,fam:"Esv5 (Memory Optimized)"},{l:"E32s v5 — 32 vCPU, 256 GB",f:"E32s v5",p:2017.15,fam:"Esv5 (Memory Optimized)"},{l:"E64s v5 — 64 vCPU, 512 GB",f:"E64s v5",p:4034.30,fam:"Esv5 (Memory Optimized)"},
+{l:"F2s v2 — 2 vCPU, 4 GB",f:"F2s v2",p:84.68,fam:"Fsv2 (Compute Optimized)"},{l:"F4s v2 — 4 vCPU, 8 GB",f:"F4s v2",p:168.06,fam:"Fsv2 (Compute Optimized)"},{l:"F8s v2 — 8 vCPU, 16 GB",f:"F8s v2",p:337.68,fam:"Fsv2 (Compute Optimized)"},{l:"F16s v2 — 16 vCPU, 32 GB",f:"F16s v2",p:675.36,fam:"Fsv2 (Compute Optimized)"},{l:"F32s v2 — 32 vCPU, 64 GB",f:"F32s v2",p:1350.72,fam:"Fsv2 (Compute Optimized)"},{l:"F48s v2 — 48 vCPU, 96 GB",f:"F48s v2",p:2026.08,fam:"Fsv2 (Compute Optimized)"},
+{l:"L8s v3 — 8 vCPU, 64 GB",f:"L8s v3",p:553.44,fam:"Lsv3 (Storage Optimized)"},{l:"L16s v3 — 16 vCPU, 128 GB",f:"L16s v3",p:1106.88,fam:"Lsv3 (Storage Optimized)"},{l:"L32s v3 — 32 vCPU, 256 GB",f:"L32s v3",p:2213.76,fam:"Lsv3 (Storage Optimized)"},{l:"L48s v3 — 48 vCPU, 384 GB",f:"L48s v3",p:3320.64,fam:"Lsv3 (Storage Optimized)"},
+{l:"M8ms — 8 vCPU, 218 GB",f:"M8ms",p:1346.76,fam:"M-series (High Memory)"},{l:"M16ms — 16 vCPU, 437 GB",f:"M16ms",p:2693.52,fam:"M-series (High Memory)"},{l:"M32ms — 32 vCPU, 875 GB",f:"M32ms",p:5387.04,fam:"M-series (High Memory)"},{l:"M64ms — 64 vCPU, 1750 GB",f:"M64ms",p:10774.08,fam:"M-series (High Memory)"},{l:"M128ms — 128 vCPU, 3800 GB",f:"M128ms",p:21548.16,fam:"M-series (High Memory)"},
+{l:"NC4as T4 v3 — 4 vCPU, 28 GB",f:"NC4as T4 v3",p:369.74,fam:"NC T4 v3 (GPU)"},{l:"NC8as T4 v3 — 8 vCPU, 56 GB",f:"NC8as T4 v3",p:739.49,fam:"NC T4 v3 (GPU)"},{l:"NC16as T4 v3 — 16 vCPU, 110 GB",f:"NC16as T4 v3",p:1478.98,fam:"NC T4 v3 (GPU)"},
+{l:"NC6s v3 — 6 vCPU, Tesla V100",f:"NC6s v3",p:2954.88,fam:"NCsv3 (GPU V100)"},{l:"NC12s v3 — 12 vCPU, V100×2",f:"NC12s v3",p:5909.76,fam:"NCsv3 (GPU V100)"},{l:"NC24s v3 — 24 vCPU, V100×4",f:"NC24s v3",p:11819.52,fam:"NCsv3 (GPU V100)"},
+{l:"ND96asr A100 v4 — A100×8",f:"ND96asr A100",p:27197.76,fam:"NDasrv4 (GPU A100)"},{l:"NV12s v3 — 1 M60 GPU",f:"NV12s v3",p:1168.56,fam:"NVsv3 (Visualization)"},{l:"NV24s v3 — 2 M60 GPU",f:"NV24s v3",p:2337.12,fam:"NVsv3 (Visualization)"},
+{l:"HB60rs — 60 vCPU HPC",f:"HB60rs",p:2336.64,fam:"HB/HC (HPC)"},{l:"HB120rs v2 — 120 vCPU HPC",f:"HB120rs v2",p:3650.16,fam:"HB/HC (HPC)"},{l:"HC44rs — 44 vCPU HPC",f:"HC44rs",p:3044.16,fam:"HB/HC (HPC)"},
+],
+"Azure Spot VMs":[{l:"D2s v3 Spot",f:"D2s v3 Spot",p:14.45},{l:"D4s v3 Spot",f:"D4s v3 Spot",p:28.90},{l:"D8s v3 Spot",f:"D8s v3 Spot",p:57.81},{l:"E4s v3 Spot",f:"E4s v3 Spot",p:37.88},{l:"F8s v2 Spot",f:"F8s v2 Spot",p:20.26},{l:"NC6 Spot",f:"NC6 Spot",p:65.70}],
+"Azure Kubernetes Service":[{l:"Free cluster management",f:"AKS Free",p:0.00},{l:"Standard cluster management",f:"AKS Standard",p:73.00},{l:"Node — D2s v3",f:"AKS D2s v3",p:96.36},{l:"Node — D4s v3",f:"AKS D4s v3",p:192.72},{l:"Node — D8s v3",f:"AKS D8s v3",p:385.44},{l:"Node — E4s v3",f:"AKS E4s v3",p:252.56}],
+"Azure App Service":[{l:"F1 Free",f:"F1",p:0.00},{l:"B1 Basic",f:"B1",p:13.14},{l:"B2 Basic",f:"B2",p:26.28},{l:"B3 Basic",f:"B3",p:52.56},{l:"S1 Standard",f:"S1",p:73.00},{l:"S2 Standard",f:"S2",p:146.00},{l:"S3 Standard",f:"S3",p:292.00},{l:"P0v3 Premium",f:"P0v3",p:80.30},{l:"P1v3 Premium",f:"P1v3",p:138.70},{l:"P2v3 Premium",f:"P2v3",p:277.40},{l:"P3v3 Premium",f:"P3v3",p:554.80},{l:"P1mv3 Memory Opt",f:"P1mv3",p:160.02},{l:"P2mv3 Memory Opt",f:"P2mv3",p:320.04},{l:"I1v2 Isolated",f:"I1v2",p:219.00},{l:"I2v2 Isolated",f:"I2v2",p:438.00},{l:"I3v2 Isolated",f:"I3v2",p:876.00}],
+"Azure Functions":[{l:"Consumption (per M executions)",f:"Fn Consumption",p:0.20,u:"/M exec"},{l:"Premium EP1 — 1 vCPU, 3.5 GB",f:"EP1",p:155.78},{l:"Premium EP2 — 2 vCPU, 7 GB",f:"EP2",p:311.55},{l:"Premium EP3 — 4 vCPU, 14 GB",f:"EP3",p:623.10}],
+"Azure Container Instances":[{l:"Linux — 1 vCPU, 1.5 GB",f:"ACI Linux 1vCPU",p:32.40},{l:"Linux — 2 vCPU, 3 GB",f:"ACI Linux 2vCPU",p:64.80},{l:"Linux — 4 vCPU, 6 GB",f:"ACI Linux 4vCPU",p:129.60},{l:"Windows — 1 vCPU, 1.5 GB",f:"ACI Win 1vCPU",p:54.00}],
+"Azure Batch":[{l:"Dedicated — D2s v3",f:"Batch D2s",p:96.36},{l:"Dedicated — D4s v3",f:"Batch D4s",p:192.72},{l:"Low-priority — D2s v3",f:"Batch LP D2s",p:19.27},{l:"Low-priority — D4s v3",f:"Batch LP D4s",p:38.54}],
+},
+"Databases":{
+"Azure SQL Database":[{l:"Basic (5 DTU)",f:"SQL Basic",p:4.99},{l:"S0 Standard (10 DTU)",f:"S0",p:15.00},{l:"S2 Standard (50 DTU)",f:"S2",p:75.00},{l:"P1 Premium (125 DTU)",f:"P1 SQL",p:465.00},{l:"P2 Premium (250 DTU)",f:"P2 SQL",p:930.00},{l:"GP 2 vCores",f:"GP Gen5 2",p:367.92},{l:"GP 4 vCores",f:"GP Gen5 4",p:735.84},{l:"GP 8 vCores",f:"GP Gen5 8",p:1471.68},{l:"GP 16 vCores",f:"GP Gen5 16",p:2943.36},{l:"BC 2 vCores",f:"BC Gen5 2",p:734.40},{l:"BC 4 vCores",f:"BC Gen5 4",p:1468.80},{l:"BC 8 vCores",f:"BC Gen5 8",p:2937.60},{l:"Hyperscale 2 vCores",f:"HS Gen5 2",p:367.92},{l:"Hyperscale 4 vCores",f:"HS Gen5 4",p:735.84},{l:"Serverless (per vCore-sec)",f:"SQL Serverless",p:0.000169,u:"/vCore-sec"}],
+"Azure SQL Managed Instance":[{l:"GP 4 vCores",f:"SQLMI GP 4",p:735.84},{l:"GP 8 vCores",f:"SQLMI GP 8",p:1471.68},{l:"GP 16 vCores",f:"SQLMI GP 16",p:2943.36},{l:"GP 24 vCores",f:"SQLMI GP 24",p:4415.04},{l:"BC 4 vCores",f:"SQLMI BC 4",p:1468.80},{l:"BC 8 vCores",f:"SQLMI BC 8",p:2937.60},{l:"BC 16 vCores",f:"SQLMI BC 16",p:5875.20}],
+"Azure Cosmos DB":[{l:"Serverless (per M RU)",f:"Cosmos Serverless",p:0.25,u:"/M RU"},{l:"Provisioned 400 RU/s",f:"Cosmos 400 RU",p:23.36},{l:"Provisioned 1000 RU/s",f:"Cosmos 1000 RU",p:58.40},{l:"Autoscale 1000 RU/s max",f:"Cosmos Auto 1K",p:29.20},{l:"Autoscale 4000 RU/s max",f:"Cosmos Auto 4K",p:116.80},{l:"Dedicated Gateway — D4s",f:"Cosmos GW D4",p:490.00}],
+"Azure Database for PostgreSQL":[{l:"Flexible B1ms (1 vCPU, 2 GB)",f:"PG B1ms",p:12.41},{l:"Flexible B2ms (2 vCPU, 4 GB)",f:"PG B2ms",p:24.82},{l:"Flexible D2ds v4",f:"PG D2ds",p:136.24},{l:"Flexible D4ds v4",f:"PG D4ds",p:272.48},{l:"Flexible D8ds v4",f:"PG D8ds",p:544.96},{l:"Flexible D16ds v4",f:"PG D16ds",p:1089.92},{l:"Flexible E4ds v4 (mem opt)",f:"PG E4ds",p:294.82},{l:"Flexible E8ds v4 (mem opt)",f:"PG E8ds",p:589.64}],
+"Azure Database for MySQL":[{l:"Flexible B1ms (1 vCPU, 2 GB)",f:"MySQL B1ms",p:12.41},{l:"Flexible B2ms (2 vCPU, 4 GB)",f:"MySQL B2ms",p:24.82},{l:"Flexible D2ds v4",f:"MySQL D2ds",p:136.24},{l:"Flexible D4ds v4",f:"MySQL D4ds",p:272.48},{l:"Flexible D8ds v4",f:"MySQL D8ds",p:544.96}],
+"Azure Cache for Redis":[{l:"C0 Basic (250 MB)",f:"C0",p:16.06},{l:"C1 Basic (1 GB)",f:"C1",p:53.29},{l:"C1 Standard (1 GB)",f:"C1 Std",p:106.58},{l:"C2 Standard (6 GB)",f:"C2 Std",p:203.52},{l:"C3 Standard (13 GB)",f:"C3 Std",p:407.04},{l:"P1 Premium (6 GB)",f:"P1 Redis",p:276.48},{l:"P2 Premium (13 GB)",f:"P2 Redis",p:552.96},{l:"P3 Premium (26 GB)",f:"P3 Redis",p:1105.92},{l:"P4 Premium (53 GB)",f:"P4 Redis",p:2211.84}],
+"Azure Synapse Analytics":[{l:"DW100c",f:"DW100c",p:700.00},{l:"DW200c",f:"DW200c",p:1400.00},{l:"DW300c",f:"DW300c",p:2100.00},{l:"DW500c",f:"DW500c",p:3500.00},{l:"DW1000c",f:"DW1000c",p:7000.00},{l:"Serverless SQL (per TB)",f:"Synapse Serverless",p:5.00,u:"/TB"},{l:"Spark Pool Small (4 vCPU/hr)",f:"Synapse Spark Sm",p:0.32,u:"/hr"},{l:"Spark Pool Medium (8 vCPU/hr)",f:"Synapse Spark Md",p:0.64,u:"/hr"}],
+},
+"Storage":{
+"Azure Blob Storage":[{l:"Hot LRS (per GB)",f:"Hot LRS",p:0.018,u:"/GB"},{l:"Hot ZRS (per GB)",f:"Hot ZRS",p:0.023,u:"/GB"},{l:"Hot GRS (per GB)",f:"Hot GRS",p:0.036,u:"/GB"},{l:"Hot RA-GRS (per GB)",f:"Hot RA-GRS",p:0.045,u:"/GB"},{l:"Cool LRS (per GB)",f:"Cool LRS",p:0.01,u:"/GB"},{l:"Cool GRS (per GB)",f:"Cool GRS",p:0.02,u:"/GB"},{l:"Cold LRS (per GB)",f:"Cold LRS",p:0.0036,u:"/GB"},{l:"Archive LRS (per GB)",f:"Archive LRS",p:0.00099,u:"/GB"}],
+"Azure Managed Disks":[{l:"P4 Premium SSD (32 GB)",f:"P4",p:5.28},{l:"P6 Premium SSD (64 GB)",f:"P6",p:10.21},{l:"P10 Premium SSD (128 GB)",f:"P10",p:19.71},{l:"P15 Premium SSD (256 GB)",f:"P15",p:38.08},{l:"P20 Premium SSD (512 GB)",f:"P20",p:73.22},{l:"P30 Premium SSD (1 TB)",f:"P30",p:135.17},{l:"P40 Premium SSD (2 TB)",f:"P40",p:261.12},{l:"P50 Premium SSD (4 TB)",f:"P50",p:506.88},{l:"E4 Standard SSD (32 GB)",f:"E4",p:2.40},{l:"E10 Standard SSD (128 GB)",f:"E10",p:9.60},{l:"E20 Standard SSD (512 GB)",f:"E20",p:38.40},{l:"E30 Standard SSD (1 TB)",f:"E30",p:76.80},{l:"S10 Standard HDD (128 GB)",f:"S10",p:5.50},{l:"S20 Standard HDD (512 GB)",f:"S20",p:20.23},{l:"S30 Standard HDD (1 TB)",f:"S30",p:40.45},{l:"Ultra 512 GB, 2K IOPS",f:"Ultra 512",p:64.51},{l:"Ultra 1 TB, 4K IOPS",f:"Ultra 1TB",p:113.28},{l:"Ultra 2 TB, 8K IOPS",f:"Ultra 2TB",p:226.56}],
+"Azure Files":[{l:"LRS Hot (per GB)",f:"Files Hot LRS",p:0.06,u:"/GB"},{l:"LRS Cool (per GB)",f:"Files Cool LRS",p:0.025,u:"/GB"},{l:"LRS Transaction Optimized (per GB)",f:"Files TO LRS",p:0.10,u:"/GB"},{l:"LRS Premium (per GB)",f:"Files Prem LRS",p:0.15,u:"/GB"},{l:"GRS Hot (per GB)",f:"Files Hot GRS",p:0.12,u:"/GB"}],
+"Azure NetApp Files":[{l:"Standard (4 TB min)",f:"ANF Standard",p:272.00},{l:"Premium (4 TB min)",f:"ANF Premium",p:544.00},{l:"Ultra (4 TB min)",f:"ANF Ultra",p:816.00}],
+},
+"Networking":{
+"Azure Load Balancer":[{l:"Basic",f:"LB Basic",p:0.00},{l:"Standard",f:"LB Standard",p:18.25},{l:"Gateway (per hr)",f:"LB Gateway",p:0.025,u:"/hr"}],
+"Azure Application Gateway":[{l:"Small V1",f:"AppGW Small",p:93.44},{l:"Medium V1",f:"AppGW Medium",p:186.88},{l:"Large V1",f:"AppGW Large",p:374.76},{l:"V2 — 10 capacity units",f:"AppGW V2",p:547.90},{l:"WAF V2 — 10 capacity units",f:"AppGW WAF V2",p:657.00}],
+"Azure VPN Gateway":[{l:"Basic",f:"VPN Basic",p:26.28},{l:"VpnGw1 (650 Mbps)",f:"VpnGw1",p:138.70},{l:"VpnGw2 (1 Gbps)",f:"VpnGw2",p:365.00},{l:"VpnGw3 (1.25 Gbps)",f:"VpnGw3",p:730.00},{l:"VpnGw4 AZ (5 Gbps)",f:"VpnGw4",p:1460.00},{l:"VpnGw5 AZ (10 Gbps)",f:"VpnGw5",p:2920.00}],
+"Azure ExpressRoute":[{l:"Standard 50 Mbps",f:"ER Std 50",p:55.00},{l:"Standard 200 Mbps",f:"ER Std 200",p:110.00},{l:"Standard 1 Gbps",f:"ER Std 1G",p:320.00},{l:"Premium 1 Gbps",f:"ER Prem 1G",p:545.00},{l:"Premium 10 Gbps",f:"ER Prem 10G",p:1825.00}],
+"Azure Firewall":[{l:"Basic",f:"AzFW Basic",p:547.50},{l:"Standard",f:"AzFW Standard",p:912.50},{l:"Premium",f:"AzFW Premium",p:1277.50}],
+"Azure Front Door":[{l:"Standard (per GB egress)",f:"AFD Std Egress",p:0.087,u:"/GB"},{l:"Premium (per GB egress)",f:"AFD Prem Egress",p:0.095,u:"/GB"},{l:"Standard routing rules",f:"AFD Std Routes",p:22.00},{l:"Premium routing rules",f:"AFD Prem Routes",p:330.00}],
+"Azure Bandwidth / Egress":[{l:"First 10 TB/mo (per GB)",f:"Egress 10TB",p:0.087,u:"/GB"},{l:"Next 40 TB/mo (per GB)",f:"Egress 40TB",p:0.083,u:"/GB"},{l:"Next 100 TB/mo (per GB)",f:"Egress 100TB",p:0.07,u:"/GB"},{l:"Next 350 TB/mo (per GB)",f:"Egress 350TB",p:0.05,u:"/GB"}],
+},
+"Microsoft Fabric":{
+"Microsoft Fabric":[
+{l:"F2 — 2 CUs (dev/test)",f:"Fabric F2",p:262.80,note:"Smallest Fabric capacity — 2 CUs. Suited for development and testing. CUs are shared across all Fabric workloads (Power BI, Data Factory, Lakehouse, Warehouse, Real-Time Analytics, etc.)."},
+{l:"F4 — 4 CUs",f:"Fabric F4",p:525.60,note:"4 Capacity Units. Light production workloads or small teams."},
+{l:"F8 — 8 CUs",f:"Fabric F8",p:1051.20,note:"8 CUs. Good for small production workloads with moderate concurrency."},
+{l:"F16 — 16 CUs",f:"Fabric F16",p:2102.40,note:"16 CUs. Recommended starting point for most production deployments."},
+{l:"F32 — 32 CUs",f:"Fabric F32",p:4204.80,note:"32 CUs. Suitable for medium-sized organizations with multiple active users and pipelines."},
+{l:"F64 — 64 CUs",f:"Fabric F64",p:8409.60,note:"64 CUs. Equivalent to Power BI Premium P1. Good for enterprise use with heavy report loads."},
+{l:"F128 — 128 CUs",f:"Fabric F128",p:16819.20,note:"128 CUs. Equivalent to Power BI Premium P2. Large enterprise deployments."},
+{l:"F256 — 256 CUs",f:"Fabric F256",p:33638.40,note:"256 CUs. Equivalent to Power BI Premium P3. Very large-scale deployments."},
+{l:"F512 — 512 CUs",f:"Fabric F512",p:67276.80,note:"512 CUs. Equivalent to Power BI Premium P4. Largest standard tier."},
+{l:"F1024 — 1024 CUs",f:"Fabric F1024",p:134553.60,note:"1024 CUs. For the largest enterprise and ISV scenarios."},
+{l:"F2048 — 2048 CUs",f:"Fabric F2048",p:269107.20,note:"2048 CUs. Maximum Fabric capacity for enterprise-scale analytics platforms."},
+{l:"OneLake storage (per GB/mo)",f:"Fabric OneLake",p:0.023,u:"/GB",note:"OneLake is Fabric's unified data lake. Billed per GB per month (Delta Parquet). First 1 GB free."},
+{l:"OneLake read ops (per 10K)",f:"Fabric Read",p:0.005,u:"/10K ops",note:"Read operations from OneLake, charged per 10,000 operations."},
+{l:"OneLake write ops (per 10K)",f:"Fabric Write",p:0.05,u:"/10K ops",note:"Write operations to OneLake, charged per 10,000 operations."},
+],
+},
+"AI & Analytics":{
+"Azure OpenAI":[{l:"GPT-4o (per 1M tokens)",f:"GPT4o",p:5.00,u:"/1M tok"},{l:"GPT-4o mini (per 1M tokens)",f:"GPT4o mini",p:0.15,u:"/1M tok"},{l:"GPT-4 Turbo (per 1M tokens)",f:"GPT4 Turbo",p:30.00,u:"/1M tok"},{l:"GPT-3.5 Turbo (per 1M tokens)",f:"GPT35",p:0.50,u:"/1M tok"},{l:"Ada Embeddings v2 (per 1M)",f:"Ada Embed",p:0.10,u:"/1M tok"},{l:"text-embedding-3-small (per 1M)",f:"Embed3 Sm",p:0.02,u:"/1M tok"},{l:"text-embedding-3-large (per 1M)",f:"Embed3 Lg",p:0.13,u:"/1M tok"},{l:"DALL-E 3 Standard 1024×1024",f:"DALLE3",p:0.04,u:"/image"},{l:"Whisper (per minute)",f:"Whisper",p:0.006,u:"/min"}],
+"Azure Machine Learning":[{l:"Compute — DS2 v2",f:"AML DS2",p:96.36},{l:"Compute — DS3 v2",f:"AML DS3",p:192.72},{l:"Compute — NC6 GPU",f:"AML NC6",p:657.00},{l:"Compute — NC6s v3 GPU",f:"AML NC6sv3",p:2954.88},{l:"Managed endpoint — D4s",f:"AML Ep D4s",p:192.72},{l:"Managed endpoint — D8s",f:"AML Ep D8s",p:385.44}],
+"Azure Cognitive Services":[{l:"Speech S0 (per 1M chars)",f:"Speech S0",p:4.00,u:"/1M char"},{l:"Vision S1 (per 1K transactions)",f:"Vision S1",p:1.00,u:"/1K tx"},{l:"Language S0 (per 1K transactions)",f:"Lang S0",p:1.00,u:"/1K tx"},{l:"Translator S1 (per 1M chars)",f:"Translator",p:10.00,u:"/1M char"},{l:"Document Intelligence S0 (per 1K pages)",f:"DocIntel S0",p:1.50,u:"/1K pg"},{l:"Content Safety S0 (per 1K calls)",f:"ContentSafety",p:1.50,u:"/1K calls"}],
+"Azure Databricks":[{l:"Standard (per DBU)",f:"Databricks Std DBU",p:0.15,u:"/DBU"},{l:"Premium (per DBU)",f:"Databricks Prem DBU",p:0.22,u:"/DBU"},{l:"Standard cluster — 10 DBU/hr",f:"Databricks Std 10",p:219.00},{l:"Premium cluster — 10 DBU/hr",f:"Databricks Prem 10",p:438.00},{l:"Jobs compute — 10 DBU/hr",f:"Databricks Jobs",p:131.40}],
+"Azure Stream Analytics":[{l:"Standard (per SU/hr)",f:"ASA SU",p:0.11,u:"/SU/hr"},{l:"Standard 6 SU/mo",f:"ASA 6SU",p:481.80},{l:"Standard 12 SU/mo",f:"ASA 12SU",p:963.60}],
+"Azure AI Search":[{l:"Free (3 indexes)",f:"Search Free",p:0.00},{l:"Basic",f:"Search Basic",p:73.73},{l:"Standard S1",f:"Search S1",p:245.28},{l:"Standard S2",f:"Search S2",p:980.28},{l:"Standard S3",f:"Search S3",p:1960.56},{l:"Storage Optimized L1",f:"Search L1",p:2826.00},{l:"Storage Optimized L2",f:"Search L2",p:5652.00}],
+},
+"Monitoring & Management":{
+"Azure Monitor":[{l:"Log Analytics ingestion (per GB)",f:"Monitor LA Ingest",p:2.76,u:"/GB",note:"Per GB ingested into Log Analytics. First 5 GB/month per workspace free. Use commitment tiers for >100 GB/day."},{l:"Log Analytics Basic tier (per GB)",f:"Monitor LA Basic",p:0.60,u:"/GB",note:"Basic tier: lower cost, limited query (8-day retention, no alerts). Good for verbose debug logs."},{l:"Log Analytics retention >31 days (per GB/mo)",f:"Monitor LA Retain",p:0.10,u:"/GB/mo",note:"Data beyond 31-day default retention is billed per GB per month."},{l:"Log Analytics commitment 100 GB/day",f:"Monitor LA 100GB",p:196.00,u:"/day",note:"~30% savings vs PAYG. Best for predictable 100+ GB/day ingestion."},{l:"Log Analytics commitment 200 GB/day",f:"Monitor LA 200GB",p:352.00,u:"/day",note:"~36% savings vs PAYG at 200 GB/day."},{l:"Log Analytics commitment 500 GB/day",f:"Monitor LA 500GB",p:800.00,u:"/day",note:"~42% savings vs PAYG at 500 GB/day."},{l:"Application Insights ingestion (per GB)",f:"Monitor AppIns",p:2.76,u:"/GB",note:"App Insights uses same workspace pricing. First 5 GB free. Sampling can reduce volume significantly."},{l:"Application Insights multi-step web test",f:"Monitor Test",p:10.00,u:"/test/mo",note:"Multi-step availability tests run from multiple global locations."},{l:"Metrics custom (per series/mo)",f:"Monitor Metrics",p:0.10,u:"/series",note:"Per unique metric + dimension combination. First 10 series free."},{l:"Alerts metric rules (per rule/mo)",f:"Monitor Alert Metric",p:0.10,u:"/rule",note:"First 10 metric alert rules free."},{l:"Alerts log search rules (per rule/mo)",f:"Monitor Alert Log",p:1.50,u:"/rule",note:"Log search alerts billed per rule per month."},{l:"Diagnostics data export (per GB)",f:"Monitor Export",p:0.10,u:"/GB",note:"Continuous export from Log Analytics to Storage or Event Hubs."},{l:"Network Watcher flow logs (per GB)",f:"Monitor NetWatcher",p:0.10,u:"/GB",note:"NSG/VNet flow logs processed by traffic analytics."}],
+"Azure Automation":[{l:"Free tier (500 min/mo)",f:"Auto Free",p:0.00,note:"First 500 minutes of runbook job runtime free per month."},{l:"Process automation (per min)",f:"Auto Runbook",p:0.002,u:"/min",note:"Per minute beyond free 500 min."},{l:"State Configuration (per node/mo)",f:"Auto DSC",p:6.00,u:"/node",note:"Per managed node per month."}],
+"Azure Cost Management":[{l:"Free for Azure",f:"Cost Mgmt Free",p:0.00,note:"Free for Azure spend monitoring."},{l:"AWS connector (% of managed spend)",f:"Cost Mgmt AWS",p:1.00,u:"% spend",note:"1% of managed AWS spend/month for multi-cloud connector."}],
+},
+"Integration & Dev":{
+"Azure Service Bus":[{l:"Basic (per M operations)",f:"SB Basic",p:0.05,u:"/M ops"},{l:"Standard (per M operations)",f:"SB Standard",p:0.10,u:"/M ops"},{l:"Premium 1 messaging unit",f:"SB Prem 1MU",p:677.00},{l:"Premium 2 messaging units",f:"SB Prem 2MU",p:1354.00},{l:"Premium 4 messaging units",f:"SB Prem 4MU",p:2708.00}],
+"Azure Event Hubs":[{l:"Basic 1 TU",f:"EH Basic 1TU",p:10.76},{l:"Standard 1 TU",f:"EH Std 1TU",p:21.52},{l:"Standard 5 TU",f:"EH Std 5TU",p:107.60},{l:"Premium 1 PU",f:"EH Prem 1PU",p:731.52},{l:"Premium 2 PU",f:"EH Prem 2PU",p:1463.04},{l:"Dedicated 1 CU",f:"EH Ded 1CU",p:6854.40}],
+"Azure API Management":[{l:"Developer",f:"APIM Dev",p:49.64},{l:"Basic",f:"APIM Basic",p:497.89},{l:"Standard",f:"APIM Std",p:995.77},{l:"Premium (per unit)",f:"APIM Prem",p:2786.16},{l:"Consumption (per 1M calls)",f:"APIM Consumption",p:3.50,u:"/1M calls"}],
+"Azure Logic Apps":[{l:"Consumption (per 10K actions)",f:"LA Consumption",p:0.25,u:"/10K act"},{l:"Standard WS1 (1 vCPU, 3.5 GB)",f:"LA WS1",p:192.72},{l:"Standard WS2 (2 vCPU, 7 GB)",f:"LA WS2",p:385.44},{l:"Standard WS3 (4 vCPU, 14 GB)",f:"LA WS3",p:770.88}],
+"Azure Container Registry":[{l:"Basic",f:"ACR Basic",p:5.00},{l:"Standard",f:"ACR Standard",p:20.00},{l:"Premium",f:"ACR Premium",p:50.00}],
+"Azure DevOps":[{l:"Basic plan (per user/mo)",f:"ADO Basic",p:6.00,u:"/user"},{l:"Basic + Test Plans (per user)",f:"ADO TestPlan",p:52.00,u:"/user"},{l:"Hosted CI/CD extra parallel job",f:"ADO CI",p:40.00},{l:"Artifacts storage (per GB)",f:"ADO Artifacts",p:2.00,u:"/GB"}],
+},
+"Security & Identity":{
+"Microsoft Entra ID":[{l:"Free",f:"Entra Free",p:0.00},{l:"P1 (per user/mo)",f:"Entra P1",p:6.00,u:"/user"},{l:"P2 (per user/mo)",f:"Entra P2",p:9.00,u:"/user"},{l:"External ID (per MAU >50K)",f:"Entra External",p:0.01,u:"/MAU"}],
+"Azure Key Vault":[{l:"Standard secrets (per 10K ops)",f:"KV Std",p:0.03,u:"/10K ops"},{l:"Premium HSM keys (per key/mo)",f:"KV Prem",p:1.00,u:"/key"},{l:"Managed HSM (per hr)",f:"KV MHSM",p:3.20,u:"/hr"}],
+"Microsoft Defender for Cloud":[{l:"Servers Plan 1 (per server)",f:"MDC Srv P1",p:10.00,u:"/server"},{l:"Servers Plan 2 (per server)",f:"MDC Srv P2",p:20.00,u:"/server"},{l:"SQL Servers (per node)",f:"MDC SQL",p:15.00,u:"/node"},{l:"Storage (per acct)",f:"MDC Storage",p:10.00,u:"/acct"},{l:"Containers (per vCore)",f:"MDC Containers",p:7.00,u:"/vCore"},{l:"App Service (per instance)",f:"MDC AppSvc",p:15.00,u:"/instance"}],
+"Azure DDoS Protection":[{l:"Network Protection",f:"DDoS Network",p:2944.00},{l:"IP Protection (per public IP)",f:"DDoS IP",p:199.00}],
+"Microsoft Sentinel":[{l:"PAYG (per GB ingested)",f:"Sentinel PAYG",p:2.46,u:"/GB"},{l:"Commitment 100 GB/day",f:"Sentinel 100GB",p:6405.00},{l:"Commitment 200 GB/day",f:"Sentinel 200GB",p:11200.00},{l:"Commitment 500 GB/day",f:"Sentinel 500GB",p:25200.00}],
+},
+};
+
+const NO_RES=new Set(["Azure Spot VMs","Azure Functions","Azure Container Instances","Azure Blob Storage","Azure Files","Azure NetApp Files","Azure Bandwidth / Egress","Azure Front Door","Azure OpenAI","Azure Cognitive Services","Azure AI Search","Azure Service Bus","Azure Event Hubs","Azure Logic Apps","Azure DevOps","Azure Container Registry","Azure Key Vault","Microsoft Defender for Cloud","Azure DDoS Protection","Microsoft Sentinel","Azure Cosmos DB","Azure Stream Analytics","Azure Monitor","Azure Automation","Azure Cost Management","Microsoft Fabric","Azure Machine Learning","Azure Batch"]);
+
+let items=[], nid=1;
+const catSel=document.getElementById('cat-sel');
+const svcSel=document.getElementById('svc-sel');
+const skuSel=document.getElementById('sku-sel');
+const regSel=document.getElementById('reg-sel');
+const resSel=document.getElementById('res-sel');
+const qtyIn=document.getElementById('qty-in');
+const btnAdd=document.getElementById('btn-add');
+const btnExport=document.getElementById('btn-export');
+const statusEl=document.getElementById('status-msg');
+const tbody=document.getElementById('tbl-body');
+const noteBox=document.getElementById('note-box');
+const itemCount=document.getElementById('item-count');
+
+REGIONS.forEach(([v,l])=>regSel.appendChild(new Option(l,v)));
+regSel.value='eastus';
+Object.keys(CATALOG).forEach(cat=>catSel.appendChild(new Option(cat,cat)));
+
+function populateSvcs(cat){
+  svcSel.innerHTML='<option value="">Select service…</option>';
+  const pool=cat?{[cat]:CATALOG[cat]}:CATALOG;
+  Object.entries(pool).forEach(([c,svcs])=>{
+    const g=document.createElement('optgroup');g.label=c;
+    Object.keys(svcs).forEach(svc=>g.appendChild(new Option(svc,svc)));
+    svcSel.appendChild(g);
+  });
+  skuSel.innerHTML='<option>Select service first</option>';
+  btnAdd.disabled=true; noteBox.style.display='none';
+}
+populateSvcs('');
+catSel.addEventListener('change',()=>populateSvcs(catSel.value));
+
+svcSel.addEventListener('change',()=>{
+  const svc=svcSel.value; skuSel.innerHTML=''; noteBox.style.display='none';
+  if(!svc){skuSel.innerHTML='<option>Select service first</option>';btnAdd.disabled=true;return;}
+  let skus=null;
+  for(const cat of Object.values(CATALOG)){if(cat[svc]){skus=cat[svc];break;}}
+  if(!skus)return;
+  const families={};
+  skus.forEach(s=>{const fam=s.fam||'_';if(!families[fam])families[fam]=[];families[fam].push(s);});
+  const fks=Object.keys(families);
+  if(fks.length===1&&fks[0]==='_'){
+    skus.forEach(s=>skuSel.appendChild(new Option(s.l,s.f)));
+  } else {
+    fks.forEach(fam=>{
+      if(fam==='_'){families[fam].forEach(s=>skuSel.appendChild(new Option(s.l,s.f)));return;}
+      const g=document.createElement('optgroup');g.label=fam;
+      families[fam].forEach(s=>g.appendChild(new Option(s.l,s.f)));
+      skuSel.appendChild(g);
+    });
+  }
+  resSel.disabled=NO_RES.has(svc);
+  if(NO_RES.has(svc))resSel.value='payg';
+  btnAdd.disabled=false; showNote();
+});
+skuSel.addEventListener('change',showNote);
+
+function showNote(){
+  const svc=svcSel.value,skuF=skuSel.value;
+  if(!svc||!skuF){noteBox.style.display='none';return;}
+  let sd=null;
+  for(const cat of Object.values(CATALOG)){if(cat[svc]){sd=cat[svc].find(s=>s.f===skuF);break;}}
+  if(sd&&sd.note){noteBox.textContent=sd.note;noteBox.style.display='block';}
+  else noteBox.style.display='none';
+}
+
+async function fetchPayg(svc,skuF,region){
+  const apiSvc=API_MAP[svc];if(!apiSvc)return null;
+  try{
+    const r=await fetch(`https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview&$filter=serviceName eq '${encodeURIComponent(apiSvc)}' and armRegionName eq '${region}' and priceType eq 'Consumption'&$top=30`);
+    if(!r.ok)return null;
+    const d=await r.json();
+    if(d.Items?.length){
+      const kw=skuF.toLowerCase().split(' ')[0];
+      const m=d.Items.find(i=>i.skuName&&i.skuName.toLowerCase().includes(kw)&&i.retailPrice>0&&!i.skuName.toLowerCase().includes('spot')&&!i.skuName.toLowerCase().includes('low priority'));
+      if(m)return{price:m.retailPrice,unit:m.unitOfMeasure};
+    }
+  }catch(e){}
+  return null;
+}
+
+async function fetchReservation(svc,skuF,region,term){
+  if(!SUPPORTS_RES.has(svc))return null;
+  const apiSvc=API_MAP[svc];if(!apiSvc)return null;
+  const resTerm=term==='3yr'?'3 Years':'1 Year';
+  try{
+    const r=await fetch(`https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview&$filter=serviceName eq '${encodeURIComponent(apiSvc)}' and armRegionName eq '${region}' and priceType eq 'Reservation' and reservationTerm eq '${resTerm}'&$top=30`);
+    if(!r.ok)return null;
+    const d=await r.json();
+    if(d.Items?.length){
+      const kw=skuF.toLowerCase().split(' ')[0];
+      const m=d.Items.find(i=>i.skuName&&i.skuName.toLowerCase().includes(kw)&&i.retailPrice>0);
+      if(m){
+        let monthly=m.retailPrice;
+        const uom=(m.unitOfMeasure||'').toLowerCase();
+        if(uom.includes('hour')){monthly=m.retailPrice*24*30.5;}
+        else if(uom.includes('1 year')||uom==='year'){monthly=m.retailPrice/12;}
+        else if(uom.includes('3 year')){monthly=m.retailPrice/36;}
+        if(term==='hybrid')monthly=monthly*0.87;
+        return{price:monthly,source:'real-reservation'};
+      }
+    }
+  }catch(e){}
+  return null;
+}
+
+btnAdd.addEventListener('click',async()=>{
+  const svc=svcSel.value,skuF=skuSel.value;
+  if(!svc||!skuF)return;
+  const skuL=skuSel.options[skuSel.selectedIndex]?.text||skuF;
+  const region=regSel.value,regL=regSel.options[regSel.selectedIndex]?.text||region;
+  const res=resSel.value,qty=parseFloat(qtyIn.value)||1;
+  btnAdd.disabled=true;
+  statusEl.textContent='Fetching live prices from Azure API…';
+  let skuData=null;
+  for(const cat of Object.values(CATALOG)){if(cat[svc]){skuData=cat[svc].find(s=>s.f===skuF);break;}}
+  const [livePayg, liveRes] = await Promise.all([
+    fetchPayg(svc,skuF,region),
+    res!=='payg'?fetchReservation(svc,skuF,region,res):Promise.resolve(null)
+  ]);
+  const paygPrice=livePayg?livePayg.price:(skuData?skuData.p:0);
+  const unit=livePayg?livePayg.unit:(skuData?.u||'/mo');
+  const paygSrc=livePayg?'live':'est.';
+  let resPrice, resSrc;
+  if(res==='payg'){resPrice=paygPrice;resSrc=paygSrc;}
+  else if(liveRes){resPrice=liveRes.price;resSrc='real-reservation';}
+  else{resPrice=paygPrice*(1-FLAT_DISC[res]);resSrc='flat-discount';}
+  items.push({id:nid++,svc,skuF,skuL,region,regL,res,qty,paygPrice,resPrice,unit,paygSrc,resSrc});
+  const msg=paygSrc==='live'
+    ?(resSrc==='real-reservation'?'Live PAYG + real reservation price fetched from Azure.':'Live PAYG price fetched. Reservation: flat discount (API returned no match).')
+    :'Using reference prices — Azure API may be unreachable.';
+  statusEl.textContent=msg;
+  setTimeout(()=>{statusEl.textContent='';},5000);
+  btnAdd.disabled=false;
+  render();
+});
+
+function escCSV(v){const s=String(v);return(s.includes(',')||s.includes('"')||s.includes('\n'))?`"${s.replace(/"/g,'""')}"`:s;}
+
+function exportCSV(){
+  const dateStr=new Date().toISOString().slice(0,10);
+  const rows=[['Azure Pricing Estimate — '+dateStr],[],
+    ['Service','Category','SKU','Region','Reservation','Qty','Unit','PAYG Unit Price (USD)','Reserved Unit Price (USD)','PAYG Monthly (USD)','Reserved Monthly (USD)','Annual Estimate (USD)','Annual Savings (USD)','Savings %','PAYG Source','Reservation Source']
+  ];
+  let pt=0,rt=0;
+  items.forEach(item=>{
+    const pm=item.paygPrice*item.qty,rm=item.resPrice*item.qty;
+    const sm=pm-rm,sp=pm>0?Math.round(sm/pm*100):0;
+    let cat='';for(const[c,s] of Object.entries(CATALOG)){if(s[item.svc]){cat=c;break;}}
+    rows.push([item.svc,cat,item.skuL,item.regL,RES_LABEL[item.res],item.qty,item.unit,
+      item.paygPrice.toFixed(4),item.resPrice.toFixed(4),
+      pm.toFixed(2),rm.toFixed(2),(rm*12).toFixed(2),(sm*12).toFixed(2),
+      sp+'%',item.paygSrc,item.resSrc]);
+    pt+=pm;rt+=rm;
+  });
+  rows.push([]);
+  rows.push(['TOTALS','','','','','','','','',pt.toFixed(2),rt.toFixed(2),(rt*12).toFixed(2),((pt-rt)*12).toFixed(2),pt>0?Math.round((pt-rt)/pt*100)+'%':'','','']);
+  rows.push([]);rows.push(['Generated','Date',dateStr,'Currency','USD']);
+  const csv=rows.map(r=>r.map(escCSV).join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`azure-pricing-${dateStr}.csv`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+btnExport.addEventListener('click',exportCSV);
+
+function render(){
+  if(!items.length){
+    tbody.innerHTML='<tr><td colspan="11" class="empty-td">No services added yet.</td></tr>';
+    ['s-payg','s-res','s-annual','s-save'].forEach(id=>document.getElementById(id).textContent='$0.00');
+    btnExport.disabled=true;itemCount.textContent='No services added';return;
+  }
+  let pt=0,rt=0;tbody.innerHTML='';
+  items.forEach(item=>{
+    const pm=item.paygPrice*item.qty,rm=item.resPrice*item.qty;
+    const sm=pm-rm,sp=pm>0?Math.round(sm/pm*100):0;
+    const canRes=!NO_RES.has(item.svc);
+    pt+=pm;rt+=rm;
+    const resBdg=canRes&&item.res!=='payg'
+      ?`<span class="bdg bdg-res">${RES_LABEL[item.res]}</span>`
+      :`<span class="bdg">${RES_LABEL[item.res]}</span>`;
+    const pSrc=item.paygSrc==='live'?`<span class="bdg bdg-live">live</span>`:`<span class="bdg bdg-est">est.</span>`;
+    const rSrc=item.resSrc==='real-reservation'
+      ?`<span class="bdg bdg-res" style="font-size:10px">real API</span>`
+      :item.resSrc==='live'?`<span class="bdg bdg-live">live</span>`
+      :item.resSrc==='flat-discount'?`<span class="bdg bdg-est">flat %</span>`
+      :pSrc;
+    const isFabric=item.svc==='Microsoft Fabric';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><strong style="font-size:12px">${isFabric?'<span class="bdg bdg-fabric" style="font-size:10px;margin-right:4px">Fabric</span>':''}${item.svc}</strong></td>
+      <td title="${item.skuL}"><span class="bdg" style="max-width:190px;overflow:hidden;text-overflow:ellipsis;display:inline-block">${item.skuL}</span></td>
+      <td style="font-size:11px;color:var(--text2)">${item.regL}</td>
+      <td>${resBdg}</td>
+      <td><input type="number" class="qty-in" value="${item.qty}" min="0.01" step="0.01" data-id="${item.id}"><span class="unit-lbl">${item.unit}</span></td>
+      <td style="font-size:12px">$${item.paygPrice.toFixed(4)}<br>${pSrc}</td>
+      <td style="font-size:12px">$${item.resPrice.toFixed(4)}<br>${rSrc}</td>
+      <td style="font-size:12px;color:var(--text2)">$${pm.toFixed(2)}</td>
+      <td style="font-weight:600">$${rm.toFixed(2)}</td>
+      <td>${sp>0?`<span class="save-pct">-${sp}%</span>`:'<span style="font-size:11px;color:var(--text3)">—</span>'}</td>
+      <td><button class="btn-rm" data-id="${item.id}" title="Remove">&#x2715;</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.qty-in').forEach(el=>{
+    el.addEventListener('change',e=>{
+      const id=+e.target.dataset.id,item=items.find(i=>i.id===id);
+      if(item){item.qty=Math.max(0.01,parseFloat(e.target.value)||1);render();}
+    });
+  });
+  tbody.querySelectorAll('.btn-rm').forEach(el=>{
+    el.addEventListener('click',e=>{items=items.filter(i=>i.id!==+e.target.dataset.id);render();});
+  });
+  document.getElementById('s-payg').textContent='$'+pt.toFixed(2);
+  document.getElementById('s-res').textContent='$'+rt.toFixed(2);
+  document.getElementById('s-annual').textContent='$'+(rt*12).toFixed(2);
+  document.getElementById('s-save').textContent='$'+((pt-rt)*12).toFixed(2);
+  itemCount.textContent=`${items.length} service${items.length>1?'s':''} added`;
+  btnExport.disabled=false;
+}
+</script>
+</body>
+</html>
